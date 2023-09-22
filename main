@@ -1,0 +1,192 @@
+classdef myapp < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                  matlab.ui.Figure
+        GridLayout                matlab.ui.container.GridLayout
+        GridSizeSpinner           matlab.ui.control.Spinner
+        GridSizeSpinnerLabel      matlab.ui.control.Label
+        ResetButton               matlab.ui.control.Button
+        DisplaysolutionCheckBox   matlab.ui.control.CheckBox
+        BranchingModeButtonGroup  matlab.ui.container.ButtonGroup
+        lastButton                matlab.ui.control.ToggleButton
+        middleButton              matlab.ui.control.ToggleButton
+        firstButton               matlab.ui.control.ToggleButton
+        NewMazeButton             matlab.ui.control.Button
+        UIAxes                    matlab.ui.control.UIAxes
+    end
+
+    
+    properties (Access = private)
+        slen % Length of the maze's solution
+        solplot % Handle to solution plot
+    end
+    
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Callback function: BranchingModeButtonGroup, GridSizeSpinner, 
+        % ...and 1 other component
+        function NewMaze(app, event)
+            gridsize = app.GridSizeSpinner.Value;
+            bmode = app.BranchingModeButtonGroup.SelectedObject.Text;
+            
+            [wall,wx,wy,sol,sx,sy] = amaze(gridsize,bmode);
+            app.slen = numedges(sol);
+            plot(app.UIAxes,wall,"XData",wx,"YData",wy,"NodeLabel",[])
+            axis(app.UIAxes,"equal")
+            
+            hold(app.UIAxes,"on")
+            app.solplot = plot(app.UIAxes,sol,"XData",sx,"YData",sy,"NodeLabel",[]);
+            hold(app.UIAxes,"off")      
+            
+            app.solplot.Visible = false;
+
+            app.DisplaysolutionCheckBox.Enable = true;
+            DisplaysolutionCheckBoxValueChanged(app,[])
+        end
+
+        % Value changed function: DisplaysolutionCheckBox
+        function DisplaysolutionCheckBoxValueChanged(app, event)
+            value = app.DisplaysolutionCheckBox.Value;
+
+            if value
+                app.solplot.Visible = true;
+                title(app.UIAxes,"length = " + app.slen)
+            else
+                app.solplot.Visible = false;
+                title(app.UIAxes,"Maze")
+            end
+            
+        end
+
+        % Button pushed function: ResetButton
+        function ResetButtonPushed(app, event)
+            cla(app.UIAxes)
+            title(app.UIAxes,"Maze")
+            app.DisplaysolutionCheckBox.Enable = "off";
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 316 372];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create GridLayout
+            app.GridLayout = uigridlayout(app.UIFigure);
+            app.GridLayout.ColumnWidth = {54, 64, 'fit', '1.17x', 58, 54};
+            app.GridLayout.RowHeight = {'1x', 23, 22, 20, 22, 42};
+            app.GridLayout.ColumnSpacing = 1.14285714285714;
+            app.GridLayout.RowSpacing = 8.28571428571429;
+            app.GridLayout.Padding = [1.14285714285714 8.28571428571429 1.14285714285714 8.28571428571429];
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.GridLayout);
+            title(app.UIAxes, 'Maze')
+            app.UIAxes.XTick = [];
+            app.UIAxes.XTickLabel = '';
+            app.UIAxes.YTick = [];
+            app.UIAxes.YTickLabel = '';
+            app.UIAxes.Box = 'on';
+            app.UIAxes.Layout.Row = 1;
+            app.UIAxes.Layout.Column = [2 5];
+
+            % Create NewMazeButton
+            app.NewMazeButton = uibutton(app.GridLayout, 'push');
+            app.NewMazeButton.ButtonPushedFcn = createCallbackFcn(app, @NewMaze, true);
+            app.NewMazeButton.Layout.Row = 2;
+            app.NewMazeButton.Layout.Column = [5 6];
+            app.NewMazeButton.Text = 'New Maze';
+
+            % Create BranchingModeButtonGroup
+            app.BranchingModeButtonGroup = uibuttongroup(app.GridLayout);
+            app.BranchingModeButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @NewMaze, true);
+            app.BranchingModeButtonGroup.Title = 'Branching Mode';
+            app.BranchingModeButtonGroup.Layout.Row = [3 6];
+            app.BranchingModeButtonGroup.Layout.Column = [1 2];
+
+            % Create firstButton
+            app.firstButton = uitogglebutton(app.BranchingModeButtonGroup);
+            app.firstButton.Text = 'first';
+            app.firstButton.Position = [11 73 100 23];
+            app.firstButton.Value = true;
+
+            % Create middleButton
+            app.middleButton = uitogglebutton(app.BranchingModeButtonGroup);
+            app.middleButton.Text = 'middle';
+            app.middleButton.Position = [11 50 100 23];
+
+            % Create lastButton
+            app.lastButton = uitogglebutton(app.BranchingModeButtonGroup);
+            app.lastButton.Text = 'last';
+            app.lastButton.Position = [11 29 100 23];
+
+            % Create DisplaysolutionCheckBox
+            app.DisplaysolutionCheckBox = uicheckbox(app.GridLayout);
+            app.DisplaysolutionCheckBox.ValueChangedFcn = createCallbackFcn(app, @DisplaysolutionCheckBoxValueChanged, true);
+            app.DisplaysolutionCheckBox.Enable = 'off';
+            app.DisplaysolutionCheckBox.Text = 'Display solution?';
+            app.DisplaysolutionCheckBox.Layout.Row = 5;
+            app.DisplaysolutionCheckBox.Layout.Column = [5 6];
+
+            % Create ResetButton
+            app.ResetButton = uibutton(app.GridLayout, 'push');
+            app.ResetButton.ButtonPushedFcn = createCallbackFcn(app, @ResetButtonPushed, true);
+            app.ResetButton.Layout.Row = 3;
+            app.ResetButton.Layout.Column = [5 6];
+            app.ResetButton.Text = 'Reset';
+
+            % Create GridSizeSpinnerLabel
+            app.GridSizeSpinnerLabel = uilabel(app.GridLayout);
+            app.GridSizeSpinnerLabel.HorizontalAlignment = 'right';
+            app.GridSizeSpinnerLabel.Layout.Row = 2;
+            app.GridSizeSpinnerLabel.Layout.Column = 1;
+            app.GridSizeSpinnerLabel.Text = 'Grid Size';
+
+            % Create GridSizeSpinner
+            app.GridSizeSpinner = uispinner(app.GridLayout);
+            app.GridSizeSpinner.Step = 5;
+            app.GridSizeSpinner.Limits = [5 30];
+            app.GridSizeSpinner.ValueChangedFcn = createCallbackFcn(app, @NewMaze, true);
+            app.GridSizeSpinner.Layout.Row = 2;
+            app.GridSizeSpinner.Layout.Column = [2 3];
+            app.GridSizeSpinner.Value = 5;
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = myapp
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
