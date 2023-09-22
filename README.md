@@ -13,8 +13,6 @@ This MATLAB App Designer application allows users to generate and interact with 
 * Solution Display: Get insights into maze solutions to enhance your solving strategies.
 
 ## Usage
-Customize Your Maze:
-
 * Specify the size, complexity, and path width using the user-friendly interface.
 
 * Adjust the parameters to create a maze tailored to your preferences.
